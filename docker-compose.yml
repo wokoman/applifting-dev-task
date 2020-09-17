@@ -3,27 +3,28 @@ version: "3.8"
 services:
   traefik:
     image: traefik:picodon
-    restart: always
-    container_name: traefik
     ports:
       - "80:80"
       - "8080:8080" # traefik dashboard
       - "443:443"
     command:
-      - --api
+      - --global.sendAnonymousUsage
+      - --api=true
       - --api.dashboard=true
       - --providers.docker=true
-      - --providers.docker.swarmMode=true
+      - --providers.docker.swarmmode=true
       - --providers.docker.exposedbydefault=false
       - --providers.docker.network=traefik_proxy
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
-      - --certificatesresolvers.le.acme.httpChallenge.entrypoint=web
+      - --certificatesresolvers.le.acme.tlschallenge=true
       - --certificatesresolvers.le.acme.email=me@michal.kozak.cz
-      - --certificatesresolvers.le.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.le.acme.storage=/certs/acme.json
+        #- --certificatesresolvers.le.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory
+        #- --log.level=DEBUG
     volumes:
-      - letsencrypt:/letsencrypt
-      - /var/run/docker.sock:/var/run/docker.sock
+      - "certs:/certs"
+      - "/var/run/docker.sock:/var/run/docker.sock"
     networks:
       - traefik_proxy
     deploy:
@@ -34,13 +35,31 @@ services:
         - "traefik.http.routers.traefik.middlewares=admin, traefik-ratelimit"
         - "traefik.http.routers.traefik.tls.certresolver=le"
         - "traefik.http.routers.traefik.entrypoints=websecure"
-        - "traefik.http.middlewares.admin.basicauth.users=lurker:$2y$10$8htS.48J4/Io.KDXl0iY5O.DqKUvOgyTy6ekMeI0UBimQSRg9GjbW"
+        - "traefik.http.middlewares.admin.basicauth.users=lurker:$$apr1$$BzX7l3Dp$$1hMIcwOrYZdCHd.2hBHnn/"
         - "traefik.http.middlewares.traefik-ratelimit.ratelimit.average=100"
         - "traefik.http.middlewares.traefik-ratelimit.ratelimit.burst=50"        
+        - "traefik.http.services.traefik.loadbalancer.server.port=1337"
+
+  whoami:
+    image: containous/whoami
+    deploy:
+      labels:
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.whoami-rtr.entrypoints=websecure"
+      - "traefik.http.routers.whoami-rtr.rule=Host(`whoami.michalkozak.cz`)"
+      - "traefik.http.routers.whoami-rtr.tls.certresolver=le"
+      ## Middlewares
+      # - "traefik.http.middlewares.portainer-auth.basicauth.users=lurker:$$apr1$$BzX7l3Dp$$1hMIcwOrYZdCHd.2hBHnn/"
+      ## HTTP Services
+      - "traefik.http.routers.whoami-rtr.service=whoami-svc"
+      - "traefik.http.services.whoami-svc.loadbalancer.server.port=80"
+    networks:
+      - traefik_proxy
 
 networks:
   traefik_proxy:
     external: true
 
 volumes:
-  letsencrypt:
+  certs:
