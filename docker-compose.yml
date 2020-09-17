@@ -1,0 +1,46 @@
+version: "3.8"
+
+services:
+  traefik:
+    image: traefik:picodon
+    restart: always
+    container_name: traefik
+    ports:
+      - "80:80"
+      - "8080:8080" # traefik dashboard
+      - "443:443"
+    command:
+      - --api
+      - --api.dashboard=true
+      - --providers.docker=true
+      - --providers.docker.swarmMode=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=traefik_proxy
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --certificatesresolvers.le.acme.httpChallenge.entrypoint=web
+      - --certificatesresolvers.le.acme.email=me@michal.kozak.cz
+      - --certificatesresolvers.le.acme.storage=/letsencrypt/acme.json
+    volumes:
+      - letsencrypt:/letsencrypt
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - traefik_proxy
+    deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.traefik.rule=Host(`applifting.michalkozak.cz`)"
+        - "traefik.http.routers.traefik.service=api@internal"
+        - "traefik.http.routers.traefik.middlewares=admin, traefik-ratelimit"
+        - "traefik.http.routers.traefik.tls.certresolver=le"
+        - "traefik.http.routers.traefik.entrypoints=websecure"
+        - "traefik.http.middlewares.admin.basicauth.users=lurker:$2y$10$8htS.48J4/Io.KDXl0iY5O.DqKUvOgyTy6ekMeI0UBimQSRg9GjbW"
+        - "traefik.http.middlewares.traefik-ratelimit.ratelimit.average=100"
+        - "traefik.http.middlewares.traefik-ratelimit.ratelimit.burst=50"        
+
+networks:
+  traefik_proxy:
+    external: true
+
+volumes:
+  letsencrypt:
