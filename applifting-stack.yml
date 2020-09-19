@@ -1,0 +1,123 @@
+version: "3.8"
+
+services:
+  traefik:
+    image: traefik:picodon
+    ports:
+      - "80:80"
+      - "8080:8080" # traefik dashboard
+      - "443:443"
+      - "22222:22"
+    command:
+      - --global.sendAnonymousUsage
+      - --api=true
+      - --api.dashboard=true
+      - --providers.docker=true
+      - --providers.docker.swarmmode=true
+      - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=traefik_proxy
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --entrypoints.ssh.address=:22222
+      - --certificatesresolvers.le.acme.tlschallenge=true
+      - --certificatesresolvers.le.acme.email=me@michal.kozak.cz
+      - --certificatesresolvers.le.acme.storage=/certs/acme.json
+        #- --certificatesresolvers.le.acme.caserver=https://acme-staging-v02.api.letsencrypt.org/directory
+        #- --log.level=DEBUG
+    volumes:
+      - "certs:/certs"
+      - "/var/run/docker.sock:/var/run/docker.sock"
+    networks:
+      - traefik_proxy
+    deploy:
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.traefik.rule=Host(`applifting.michalkozak.cz`)"
+        - "traefik.http.routers.traefik.service=api@internal"
+        - "traefik.http.routers.traefik.middlewares=admin, traefik-ratelimit"
+        - "traefik.http.routers.traefik.tls.certresolver=le"
+        - "traefik.http.routers.traefik.entrypoints=websecure"
+        - "traefik.http.middlewares.admin.basicauth.users=lurker:$$apr1$$BzX7l3Dp$$1hMIcwOrYZdCHd.2hBHnn/"
+        - "traefik.http.middlewares.traefik-ratelimit.ratelimit.average=100"
+        - "traefik.http.middlewares.traefik-ratelimit.ratelimit.burst=50"        
+        - "traefik.http.services.traefik.loadbalancer.server.port=1337"
+
+  whoami:
+    image: containous/whoami
+    deploy:
+      labels:
+      - "traefik.enable=true"
+      ## HTTP Routers
+      - "traefik.http.routers.whoami-rtr.entrypoints=websecure"
+      - "traefik.http.routers.whoami-rtr.rule=Host(`whoami.michalkozak.cz`)"
+      - "traefik.http.routers.whoami-rtr.tls.certresolver=le"
+      ## Middlewares
+      # - "traefik.http.middlewares.whoami-auth.basicauth.users=lurker:$$apr1$$BzX7l3Dp$$1hMIcwOrYZdCHd.2hBHnn/"
+      ## HTTP Services
+      - "traefik.http.routers.whoami-rtr.service=whoami-svc"
+      - "traefik.http.services.whoami-svc.loadbalancer.server.port=80"
+    networks:
+      - traefik_proxy
+
+  gitlab:
+    image: gitlab/gitlab-ce:latest
+    deploy:
+      placement:
+        constraints:
+          - "node.hostname==michal-kozak-large"
+      labels:
+        - "traefik.enable=true"
+        ## HTTP Routers
+        - "traefik.http.routers.gitlab-rtr.entrypoints=websecure"
+        - "traefik.http.routers.gitlab-rtr.rule=Host(`gitlab.michalkozak.cz`)"
+        - "traefik.http.routers.gitlab-rtr.tls.certresolver=le"
+        ## Middlewares
+        # - "traefik.http.middlewares.gitlab-auth.basicauth.users=lurker:$$apr1$$BzX7l3Dp$$1hMIcwOrYZdCHd.2hBHnn/"
+        ## HTTP Services
+        - "traefik.http.routers.gitlab-rtr.service=gitlab-svc"
+        - "traefik.http.services.gitlab-svc.loadbalancer.server.port=80"
+        ## TCP Routing
+        - "traefik.tcp.routers.gitlab-ssh.rule=HostSNI(`*`)"
+        - "traefik.tcp.routers.gitlab-ssh.entrypoints=ssh"
+        - "traefik.tcp.routers.gitlab-ssh.service=gitlab-ssh"
+        - "traefik.tcp.services.gitlab-ssh.loadbalancer.server.port=22"
+    volumes:
+      - /srv/gitlab/data:/var/opt/gitlab
+      - /srv/gitlab/logs:/var/log/gitlab
+      - /srv/gitlab/config:/etc/gitlab
+    environment:
+      GITLAB_OMNIBUS_CONFIG: "from_file('/omnibus_config.rb')"
+    configs:
+      - source: gitlab
+        target: /omnibus_config.rb
+    secrets:
+      - gitlab_root_password
+    networks:
+      - traefik_proxy
+  
+  gitlab-runner:
+    image: gitlab/gitlab-runner:alpine
+    deploy:
+      mode: replicated
+      replicas: 4
+    volumes:
+      - /srv/gitlab-runner/config:/etc/gitlab-runner
+      - /var/run/docker.sock:/var/run/docker.sock
+    networks:
+      - traefik_proxy
+
+networks:
+  traefik_proxy:
+    driver: overlay
+    attachable: true
+
+volumes:
+  certs:
+
+configs:
+  gitlab:
+    file: ./gitlab.rb          
+
+secrets:
+  gitlab_root_password:
+    external: true
