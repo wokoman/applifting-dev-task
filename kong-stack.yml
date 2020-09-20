@@ -100,5 +100,6 @@ volumes:
 networks:
   kong-net:
     external: false
+    attachable: true
   applifting_traefik_proxy:
     external: true

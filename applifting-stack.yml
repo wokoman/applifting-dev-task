@@ -19,6 +19,8 @@ services:
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
       - --entrypoints.ssh.address=:22222
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
       - --certificatesresolvers.le.acme.tlschallenge=true
       - --certificatesresolvers.le.acme.email=me@michal.kozak.cz
       - --certificatesresolvers.le.acme.storage=/certs/acme.json
@@ -58,6 +60,11 @@ services:
       - "traefik.http.services.whoami-svc.loadbalancer.server.port=80"
     networks:
       - traefik_proxy
+
+  whoami-kong:
+    image: containous/whoami
+    networks:
+      - kong_kong-net
 
   gitlab:
     image: gitlab/gitlab-ce:latest
@@ -110,6 +117,8 @@ networks:
   traefik_proxy:
     driver: overlay
     attachable: true
+  kong_kong-net:
+    external: true
 
 volumes:
   certs:
