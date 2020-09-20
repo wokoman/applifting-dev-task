@@ -6,7 +6,9 @@ services:
     environment:
       POSTGRES_DB: ${KONG_PG_DATABASE:-kong}
       POSTGRES_USER: ${KONG_PG_USER:-kong}
-      POSTGRES_PASSWORD: ${KONG_PG_PASSWORD}
+      POSTGRES_PASSWORD_FILE: /run/secrets/kong_postgres_password
+    secrets:
+      - kong_postgres_password
     healthcheck:
       test: ["CMD", "pg_isready", "-U", "${KONG_PG_USER:-kong}"]
       interval: 30s
@@ -32,7 +34,9 @@ services:
       KONG_PG_DATABASE: ${KONG_PG_DATABASE:-kong}
       KONG_PG_HOST: db
       KONG_PG_USER: ${KONG_PG_USER:-kong}
-      KONG_PG_PASSWORD: ${KONG_PG_PASSWORD}
+      KONG_PG_PASSWORD_FILE: /run/secrets/kong_postgres_password
+    secrets:
+      - kong_postgres_password
     networks:
       - kong-net
     deploy:
@@ -49,7 +53,9 @@ services:
       KONG_PG_DATABASE: ${KONG_PG_DATABASE:-kong}
       KONG_PG_HOST: db
       KONG_PG_USER: ${KONG_PG_USER:-kong}
-      KONG_PG_PASSWORD: ${KONG_PG_PASSWORD} 
+      KONG_PG_PASSWORD_FILE: /run/secrets/kong_postgres_password 
+    secrets:
+      - kong_postgres_password
     networks:
       - kong-net
     deploy:
@@ -72,7 +78,9 @@ services:
       KONG_PG_USER: ${KONG_PG_USER:-kong}
       KONG_PROXY_ACCESS_LOG: /dev/stdout
       KONG_PROXY_ERROR_LOG: /dev/stderr
-      KONG_PG_PASSWORD: ${KONG_PG_PASSWORD} 
+      KONG_PG_PASSWORD_FILE: /run/secrets/kong_postgres_password 
+    secrets:
+      - kong_postgres_password
     networks:
       - kong-net
       - applifting_traefik_proxy
@@ -102,4 +110,8 @@ networks:
     external: false
     attachable: true
   applifting_traefik_proxy:
+    external: true
+
+secrets:
+  kong_postgres_password:
     external: true
