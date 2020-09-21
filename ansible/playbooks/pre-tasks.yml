@@ -1,0 +1,43 @@
+- hosts: docker_swarm_managers
+  become: yes
+
+  tasks:
+    - name: Allow Docker Swarm TCP and HTTP/HTTPS ports.
+      ufw:
+        rule: allow
+        proto: tcp
+        port: "{{ item }}"
+      with_items:
+        - '80'
+        - '443'
+        - '2377'
+        - '7946'
+    - name: Allow Docker Swarm UDP ports.
+      ufw:
+        rule: allow
+        proto: tcp
+        port: "{{ item }}"
+      with_items:
+        - '4789'
+        - '7946'
+    
+    - name: Create directory structure for Gitlab.
+      when: ansible_hostname == 'michal-kozak-large'
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: docker
+      with_items:
+        - '/srv/gitlab/data'
+        - '/srv/gitlab/logs'
+        - '/srv/gitlab/config'
+
+    - name: Create directory structure for Gitlab Runners.
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: "{{ ansible_user }}"
+        group: docker
+      with_items:
+        - '/srv/gitlab-runner/config'

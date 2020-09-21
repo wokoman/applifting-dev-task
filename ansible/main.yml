@@ -1,0 +1,5 @@
+---
+- name: Run pre-tasks
+  import_playbook: playbooks/pre-tasks.yml
+- name: Run Docker Swarm role
+  import_playbook: playbooks/docker-swarm.yml

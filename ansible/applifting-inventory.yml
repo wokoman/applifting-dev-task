@@ -1,0 +1,17 @@
+docker_swarm_managers:
+  hosts:
+    164.90.234.52:
+    142.93.102.236:
+    104.248.20.94:
+  vars:
+    ansible_user: kozak
+    ansible_ssh_private_key_file: ~/.ssh/id_rsa_applifting
+
+docker_swarm:
+  hosts:
+    164.90.234.52:
+    142.93.102.236:
+    104.248.20.94:
+  vars:
+    ansible_user: kozak
+    ansible_ssh_private_key_file: ~/.ssh/id_rsa_applifting
