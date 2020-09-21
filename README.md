@@ -1,5 +1,5 @@
 # Applifting DevOps Task
-These resources will create a 3 manager node Docker Swarm, deploy Traefik, Gitlab, Gitlab Runner and whoami services. With resources under *kong-deployment*, you can
+These resources will create a 3 manager node Docker Swarm, deploy Traefik, Gitlab, Gitlab Runner and whoami services. With resources under *kong-deployment*, you can spin up Kong with PostgreSQL, and have it configured with purpose built Docker image.
 
 ## Prerequisites
 - Debian-based system is presumed
