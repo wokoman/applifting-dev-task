@@ -1,0 +1,16 @@
+build:
+  stage: build
+  script:
+    - docker build --pull -t michalkozakgd/applifting-devops-task:${CI_COMMIT_SHORT_SHA} . --build-arg KONG_CONSUMER_PW=${KONG_CONSUMER_PASSWORD}
+    - docker push michalkozakgd/applifting-devops-task:${CI_COMMIT_SHORT_SHA}
+
+deploy:
+  stage: deploy
+  script:
+    - ssh-keyscan applifting.michalkozak.cz >> ~/.ssh/known_hosts
+    - chmod 644 ~/.ssh/known_hosts
+    - echo "$SSH_PRIVATE_KEY" >> ~/.ssh/pvk
+    - chmod 600 ~/.ssh/pvk
+    - scp -i ~/.ssh/pvk kong-stack.yml kozak@applifting.michalkozak.cz:/home/kozak/kong-stack.yml
+    - ssh -i ~/.ssh/pvk kozak@applifting.michalkozak.cz "docker stack deploy -c /home/kozak/kong-stack.yml kong"
+    - ssh -i ~/.ssh/pvk kozak@applifting.michalkozak.cz "docker run --network=kong_kong-net michalkozakgd/applifting-devops-task:${CI_COMMIT_SHORT_SHA}"

@@ -98,7 +98,7 @@ services:
       - traefik_proxy
   
   gitlab-runner:
-    image: gitlab/gitlab-runner:alpine
+    image: gitlab/gitlab-runner:latest
     deploy:
       mode: replicated
       replicas: 1
