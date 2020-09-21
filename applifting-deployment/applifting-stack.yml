@@ -61,11 +61,6 @@ services:
     networks:
       - traefik_proxy
 
-  whoami-kong:
-    image: containous/whoami
-    networks:
-      - kong_kong-net
-
   gitlab:
     image: gitlab/gitlab-ce:latest
     deploy:
@@ -106,7 +101,7 @@ services:
     image: gitlab/gitlab-runner:alpine
     deploy:
       mode: replicated
-      replicas: 4
+      replicas: 1
     volumes:
       - /srv/gitlab-runner/config:/etc/gitlab-runner
       - /var/run/docker.sock:/var/run/docker.sock
@@ -117,8 +112,6 @@ networks:
   traefik_proxy:
     driver: overlay
     attachable: true
-  kong_kong-net:
-    external: true
 
 volumes:
   certs:

@@ -101,6 +101,11 @@ services:
       ## HTTP Services
       - "traefik.http.routers.kong-rtr.service=kong-svc"
       - "traefik.http.services.kong-svc.loadbalancer.server.port=8000"
+
+  whoami-kong:
+    image: containous/whoami
+    networks:
+      - kong-net
     
 volumes:
   kong_data:
